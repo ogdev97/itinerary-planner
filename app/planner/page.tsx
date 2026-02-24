@@ -1,15 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useItineraryStore, City, ItineraryItem } from '@/store/useItineraryStore';
-import { format, eachDayOfInterval, parseISO, addDays } from 'date-fns';
+import { useItineraryStore, ItineraryItem } from '@/store/useItineraryStore';
+import { format, eachDayOfInterval, parseISO } from 'date-fns';
 import { Plus, Download, ArrowLeft } from 'lucide-react';
 import { ItineraryCard } from '@/components/ItineraryCard';
 import Link from 'next/link';
 
 export default function PlannerPage() {
-  const { cities, items, tripName, getTotalBudget, addItem } = useItineraryStore();
-  const [activeCityId, setActiveCityId] = useState<string | null>(cities[0]?.id || null);
+  // Selectors (prevents unnecessary re-renders)
+  const cities = useItineraryStore((state) => state.cities);
+  const items = useItineraryStore((state) => state.items);
+  const tripName = useItineraryStore((state) => state.tripName);
+  const addItem = useItineraryStore((state) => state.addItem);
+  
+  // Computed selector for budget
+  const totalBudget = useItineraryStore((state) => 
+    state.items.reduce((sum, item) => sum + (item.cost || 0), 0)
+  );
+
+  const [activeCityId, setActiveCityId] = useState<string | null>(null);
+  
+  // Initial hydration and active city setting
+  useEffect(() => {
+    // Trigger rehydration (safe to call multiple times, but expensive)
+    useItineraryStore.persist.rehydrate();
+  }, []);
+
+  // Sync activeCityId when cities load (only if not set)
+  useEffect(() => {
+    if (cities.length > 0 && !activeCityId) {
+      setActiveCityId(cities[0].id);
+    }
+  }, [cities, activeCityId]);
   
   // Add Item Modal State
   const [isAdding, setIsAdding] = useState(false);
@@ -21,21 +44,6 @@ export default function PlannerPage() {
   });
   const [targetCityId, setTargetCityId] = useState<string>('');
   const [targetDayIndex, setTargetDayIndex] = useState<number>(0);
-
-  const totalBudget = getTotalBudget();
-
-  // Hydration fix
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    useItineraryStore.persist.rehydrate();
-    setHydrated(true);
-  }, []);
-
-  if (!hydrated) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900"></div>
-    </div>
-  );
 
   const handleAddItem = (cityId: string, dayIndex: number) => {
     setTargetCityId(cityId);
@@ -60,17 +68,19 @@ export default function PlannerPage() {
     setNewItem({ type: 'ACTIVITY', title: '', cost: 0, notes: '' });
   };
 
+  // Show loading/empty state if no cities
   if (cities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center p-8">
+      <div className="flex flex-col items-center justify-center min-h-screen text-center p-8 bg-neutral-50 text-neutral-900">
         <h2 className="text-2xl font-bold mb-4">No cities added yet!</h2>
-        <Link href="/" className="text-blue-600 hover:underline">Go back to start</Link>
+        <p className="text-neutral-500 mb-6">Start by creating your first trip.</p>
+        <Link href="/" className="text-blue-600 hover:underline font-medium">Go back to start</Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
+    <div className="min-h-screen bg-neutral-50 flex flex-col text-neutral-900">
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -98,7 +108,7 @@ export default function PlannerPage() {
         
         {/* Sidebar: City Navigation */}
         <aside className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-100 p-6 sticky top-24">
             <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Itinerary</h3>
             <ul className="space-y-2">
               {cities.map((city) => (
@@ -119,9 +129,9 @@ export default function PlannerPage() {
                 </li>
               ))}
             </ul>
-            <button className="w-full mt-4 flex items-center justify-center gap-2 border border-dashed border-neutral-300 rounded-lg py-3 text-neutral-500 hover:text-neutral-900 hover:border-neutral-400 transition-all">
+            <Link href="/" className="w-full mt-4 flex items-center justify-center gap-2 border border-dashed border-neutral-300 rounded-lg py-3 text-neutral-500 hover:text-neutral-900 hover:border-neutral-400 transition-all">
               <Plus className="h-4 w-4" /> Add City
-            </button>
+            </Link>
           </div>
         </aside>
 
@@ -195,7 +205,7 @@ export default function PlannerPage() {
                   placeholder="e.g. Visit Museum"
                   value={newItem.title}
                   onChange={e => setNewItem({...newItem, title: e.target.value})}
-                  className="w-full border p-2 rounded-lg"
+                  className="w-full border p-2 rounded-lg text-neutral-900"
                   autoFocus
                   required
                 />
@@ -207,7 +217,7 @@ export default function PlannerPage() {
                   <select
                     value={newItem.type}
                     onChange={e => setNewItem({...newItem, type: e.target.value as any})}
-                    className="w-full border p-2 rounded-lg"
+                    className="w-full border p-2 rounded-lg text-neutral-900"
                   >
                     <option value="ACTIVITY">Activity</option>
                     <option value="HOTEL">Hotel</option>
@@ -223,7 +233,7 @@ export default function PlannerPage() {
                     step="0.01"
                     value={newItem.cost}
                     onChange={e => setNewItem({...newItem, cost: Number(e.target.value)})}
-                    className="w-full border p-2 rounded-lg"
+                    className="w-full border p-2 rounded-lg text-neutral-900"
                   />
                 </div>
               </div>
@@ -233,7 +243,7 @@ export default function PlannerPage() {
                 <textarea
                   value={newItem.notes}
                   onChange={e => setNewItem({...newItem, notes: e.target.value})}
-                  className="w-full border p-2 rounded-lg h-20"
+                  className="w-full border p-2 rounded-lg h-20 text-neutral-900"
                 />
               </div>
 

@@ -14,10 +14,8 @@ export default function Home() {
     useItineraryStore.persist.rehydrate();
   }, []);
 
-  const { addCity, setTripName } = useItineraryStore((state: any) => ({
-    addCity: state.addCity,
-    setTripName: state.setTripName // I need to add this to store
-  }));
+  const addCity = useItineraryStore((state) => state.addCity);
+  const setTripName = useItineraryStore((state) => state.setTripName);
 
   const [city, setCity] = useState('');
   const [startDate, setStartDate] = useState('');
