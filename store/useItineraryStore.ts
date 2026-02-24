@@ -30,7 +30,7 @@ interface ItineraryState {
   currency: string;
   
   setTripName: (name: string) => void;
-  addCity: (city: Omit<City, 'id' | 'color'>) => void;
+  addCity: (city: Omit<City, 'id' | 'color'>) => string;
   removeCity: (id: string) => void;
   addItem: (item: Omit<ItineraryItem, 'id'>) => void;
   removeItem: (id: string) => void;
@@ -51,16 +51,20 @@ export const useItineraryStore = create<ItineraryState>()(
       
       setTripName: (name) => set({ tripName: name }),
 
-      addCity: (cityData) => set((state) => ({
-        cities: [
-          ...state.cities,
-          { 
-            ...cityData, 
-            id: uuidv4(), 
-            color: COLORS[state.cities.length % COLORS.length] 
-          }
-        ]
-      })),
+      addCity: (cityData) => {
+        const id = uuidv4();
+        set((state) => ({
+          cities: [
+            ...state.cities,
+            { 
+              ...cityData, 
+              id, 
+              color: COLORS[state.cities.length % COLORS.length] 
+            }
+          ]
+        }));
+        return id;
+      },
 
       removeCity: (id) => set((state) => ({
         cities: state.cities.filter((c) => c.id !== id),
