@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { useItineraryStore } from '@/store/useItineraryStore';
@@ -8,6 +8,12 @@ import { format } from 'date-fns';
 
 export default function Home() {
   const router = useRouter();
+  
+  // Ensure hydration happens on mount
+  useEffect(() => {
+    useItineraryStore.persist.rehydrate();
+  }, []);
+
   const { addCity, setTripName } = useItineraryStore((state: any) => ({
     addCity: state.addCity,
     setTripName: state.setTripName // I need to add this to store

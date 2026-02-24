@@ -27,10 +27,15 @@ export default function PlannerPage() {
   // Hydration fix
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
+    useItineraryStore.persist.rehydrate();
     setHydrated(true);
   }, []);
 
-  if (!hydrated) return null; // or a loading spinner
+  if (!hydrated) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900"></div>
+    </div>
+  );
 
   const handleAddItem = (cityId: string, dayIndex: number) => {
     setTargetCityId(cityId);

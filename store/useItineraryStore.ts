@@ -88,6 +88,7 @@ export const useItineraryStore = create<ItineraryState>()(
     }),
     {
       name: 'itinerary-storage',
+      skipHydration: true, // Fix: Do not hydrate on initialization (avoids SSR mismatch)
     }
   )
 );
