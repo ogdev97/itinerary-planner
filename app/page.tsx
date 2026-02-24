@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, MapPin, ArrowRight, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useItineraryStore } from '@/store/useItineraryStore';
 import { format } from 'date-fns';
 
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("Generating Plan...");
   
   // Selectors
   const addCity = useItineraryStore((state) => state.addCity);
@@ -20,16 +21,36 @@ export default function Home() {
     useItineraryStore.persist.rehydrate();
   }, []);
 
-  const [citiesInput, setCitiesInput] = useState('');
+  const [citiesList, setCitiesList] = useState<string[]>(['']);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [vibe, setVibe] = useState('');
 
+  const handleCityChange = (index: number, value: string) => {
+    const newCities = [...citiesList];
+    newCities[index] = value;
+    setCitiesList(newCities);
+  };
+
+  const addCityInput = () => {
+    setCitiesList([...citiesList, '']);
+  };
+
+  const removeCityInput = (index: number) => {
+    if (citiesList.length > 1) {
+      const newCities = citiesList.filter((_, i) => i !== index);
+      setCitiesList(newCities);
+    }
+  };
+
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!citiesInput || !startDate || !endDate) return;
+    // Validate inputs
+    const validCities = citiesList.filter(c => c.trim() !== '');
+    if (validCities.length === 0 || !startDate || !endDate) return;
 
     setLoading(true);
+    setLoadingText("Calculating Routes..."); // Updated text
 
     try {
       // Call our API to generate the plan
@@ -37,7 +58,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          cities: citiesInput, 
+          cities: validCities.join(', '), 
           startDate, 
           endDate, 
           vibe 
@@ -46,10 +67,11 @@ export default function Home() {
 
       if (!res.ok) throw new Error('Failed to generate');
 
+      setLoadingText("Finalizing Itinerary...");
       const data = await res.json();
       
       // Populate Store with AI Data
-      setTripName(data.tripName || `Trip to ${citiesInput}`);
+      setTripName(data.tripName || `Trip to ${validCities[0]}`);
 
       if (data.cities) {
         data.cities.forEach((cityData: any) => {
@@ -101,18 +123,42 @@ export default function Home() {
         <form onSubmit={handleStart} className="space-y-6 bg-white p-8 rounded-2xl shadow-sm border border-neutral-100">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Destinations</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 h-5 w-5 text-neutral-400" />
-                <input
-                  type="text"
-                  placeholder="e.g. Tokyo, Kyoto, Osaka"
-                  value={citiesInput}
-                  onChange={(e) => setCitiesInput(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all"
-                  required
-                />
+              <label className="block text-sm font-medium text-neutral-700 mb-2">Destinations</label>
+              <div className="space-y-2">
+                {citiesList.map((city, index) => (
+                  <div key={index} className="flex gap-2">
+                    <div className="relative flex-1">
+                      <MapPin className="absolute left-3 top-3 h-5 w-5 text-neutral-400" />
+                      <input
+                        type="text"
+                        placeholder="e.g. Tokyo"
+                        value={city}
+                        onChange={(e) => handleCityChange(index, e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all"
+                        required={index === 0} // Only first is strictly required by HTML5, js handles rest
+                      />
+                    </div>
+                    {citiesList.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeCityInput(index)}
+                        className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Remove city"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
+              
+              <button
+                type="button"
+                onClick={addCityInput}
+                className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
+              >
+                <Plus className="h-4 w-4" /> Add another city
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -162,7 +208,7 @@ export default function Home() {
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Generating Plan...
+                <Loader2 className="h-4 w-4 animate-spin" /> {loadingText}
               </>
             ) : (
               <>
