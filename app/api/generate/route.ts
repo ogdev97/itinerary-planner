@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
 
     // 3. Configure Gemini
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-pro (most capable, stable model for complex reasoning)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    // Use gemini-2.0-flash as seen in reference repo (fast, stable, JSON-native)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // 4. Construct Prompt
     const prompt = `
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       Start Date: ${startDate}. End Date: ${endDate}.
       Vibe: ${vibe || "General sightseeing"}.
 
-      Return ONLY a JSON object with this exact structure (no markdown, no extra text):
+      Return ONLY a JSON object with this exact structure:
       {
         "tripName": "Descriptive Trip Title",
         "cities": [
@@ -53,34 +53,21 @@ export async function POST(req: NextRequest) {
       }
     `;
 
-    // 5. Generate Content
-    console.log("Sending prompt to Gemini...");
-    const result = await model.generateContent(prompt);
+    // 5. Generate Content with JSON Mode
+    console.log("Sending prompt to Gemini (2.0-flash)...");
+    
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
     const response = await result.response;
     const text = response.text();
     
     console.log("Gemini Response received (length):", text.length);
 
-    // 6. Clean & Parse JSON
-    let jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
-    const firstBrace = jsonStr.indexOf("{");
-    const lastBrace = jsonStr.lastIndexOf("}");
-    
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
-    }
-
-    try {
-      const data = JSON.parse(jsonStr);
-      return NextResponse.json(data);
-    } catch (parseError) {
-      console.error("JSON Parse Error:", parseError);
-      console.error("Raw Text was:", text);
-      return NextResponse.json(
-        { error: "Failed to parse AI response. Try again." },
-        { status: 500 }
-      );
-    }
+    // 6. Return JSON directly (Native JSON mode guarantees valid JSON)
+    return NextResponse.json(JSON.parse(text));
 
   } catch (error: any) {
     console.error("Critical API Error:", error);
