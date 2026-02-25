@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
 
     // 3. Configure Gemini
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash for speed and reliability (gemini-pro is deprecated/unavailable in some regions)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use gemini-1.5-pro (most capable, stable model for complex reasoning)
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
     // 4. Construct Prompt
     const prompt = `
