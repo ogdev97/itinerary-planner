@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, MapPin, ArrowRight, Loader2, Plus, Trash2 } from 'lucide-react';
