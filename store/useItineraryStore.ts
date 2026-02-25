@@ -10,7 +10,6 @@ export interface ItineraryItem {
   dayIndex: number; // 0-based index relative to city start
   type: ItineraryType;
   title: string;
-  cost: number;
   time?: string;
   notes?: string;
 }
@@ -27,7 +26,6 @@ interface ItineraryState {
   tripName: string;
   cities: City[];
   items: ItineraryItem[];
-  currency: string;
   
   setTripName: (name: string) => void;
   addCity: (city: Omit<City, 'id' | 'color'>) => string;
@@ -35,8 +33,6 @@ interface ItineraryState {
   addItem: (item: Omit<ItineraryItem, 'id'>) => void;
   removeItem: (id: string) => void;
   updateItem: (id: string, updates: Partial<ItineraryItem>) => void;
-  setCurrency: (currency: string) => void;
-  getTotalBudget: () => number;
 }
 
 const COLORS = ['bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-yellow-100', 'bg-pink-100', 'bg-indigo-100'];
@@ -47,7 +43,6 @@ export const useItineraryStore = create<ItineraryState>()(
       tripName: 'My Trip',
       cities: [],
       items: [],
-      currency: 'USD',
       
       setTripName: (name) => set({ tripName: name }),
 
@@ -82,13 +77,6 @@ export const useItineraryStore = create<ItineraryState>()(
       updateItem: (id, updates) => set((state) => ({
         items: state.items.map((i) => i.id === id ? { ...i, ...updates } : i)
       })),
-
-      setCurrency: (currency) => set({ currency }),
-
-      getTotalBudget: () => {
-        const { items } = get();
-        return items.reduce((sum, item) => sum + (item.cost || 0), 0);
-      }
     }),
     {
       name: 'itinerary-storage',

@@ -15,9 +15,7 @@ export default function PlannerPage() {
   const addItem = useItineraryStore((state) => state.addItem);
   
   // Computed selector for budget
-  const totalBudget = useItineraryStore((state) => 
-    state.items.reduce((sum, item) => sum + (item.cost || 0), 0)
-  );
+  // Removed budget tracking
 
   const [activeCityId, setActiveCityId] = useState<string | null>(null);
   
@@ -39,7 +37,6 @@ export default function PlannerPage() {
   const [newItem, setNewItem] = useState<Partial<ItineraryItem>>({
     type: 'ACTIVITY',
     title: '',
-    cost: 0,
     notes: ''
   });
   const [targetCityId, setTargetCityId] = useState<string>('');
@@ -60,12 +57,11 @@ export default function PlannerPage() {
       dayIndex: targetDayIndex,
       type: newItem.type as any,
       title: newItem.title!,
-      cost: Number(newItem.cost) || 0,
       notes: newItem.notes
     });
 
     setIsAdding(false);
-    setNewItem({ type: 'ACTIVITY', title: '', cost: 0, notes: '' });
+    setNewItem({ type: 'ACTIVITY', title: '', notes: '' });
   };
 
   // Show loading/empty state if no cities
@@ -92,10 +88,6 @@ export default function PlannerPage() {
           </div>
           
           <div className="flex items-center gap-6">
-            <div className="text-right">
-              <span className="block text-xs text-neutral-500 uppercase tracking-wide">Total Budget</span>
-              <span className="block text-lg font-bold text-green-600">${totalBudget.toFixed(2)}</span>
-            </div>
             <button className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-neutral-800 transition-colors">
               <Download className="h-4 w-4" /> Export PDF
             </button>
@@ -224,17 +216,6 @@ export default function PlannerPage() {
                     <option value="FOOD">Food</option>
                     <option value="TRANSPORT">Transport</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Cost ($)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newItem.cost}
-                    onChange={e => setNewItem({...newItem, cost: Number(e.target.value)})}
-                    className="w-full border p-2 rounded-lg text-neutral-900"
-                  />
                 </div>
               </div>
 

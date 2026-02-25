@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
               {
                 "date": "YYYY-MM-DD",
                 "activities": [
-                  { "time": "Morning", "title": "Activity Name", "type": "ACTIVITY", "cost": 0, "notes": "Short description" },
-                  { "time": "Afternoon", "title": "Activity Name", "type": "FOOD", "cost": 0, "notes": "Short description" },
-                  { "time": "Evening", "title": "Activity Name", "type": "OTHER", "cost": 0, "notes": "Short description" }
+                  { "time": "Morning", "title": "Activity Name", "type": "ACTIVITY", "notes": "Short description" },
+                  { "time": "Afternoon", "title": "Activity Name", "type": "FOOD", "notes": "Short description" },
+                  { "time": "Evening", "title": "Activity Name", "type": "OTHER", "notes": "Short description" }
                 ]
               }
             ]

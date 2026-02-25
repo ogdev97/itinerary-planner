@@ -33,7 +33,6 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ item }) => {
       </div>
       
       <div className="flex items-center gap-4">
-        <span className="text-sm font-semibold text-neutral-900">${item.cost.toFixed(2)}</span>
         <button 
           onClick={() => removeItem(item.id)}
           className="text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
