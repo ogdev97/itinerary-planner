@@ -1,79 +1,92 @@
-// Fix the API route structure
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: NextRequest) {
   try {
-    const { cities, startDate, endDate, vibe } = await req.json();
+    // 1. Parse Request Body
+    const body = await req.json();
+    const { cities, startDate, endDate, vibe } = body;
 
-    if (process.env.GOOGLE_API_KEY) {
-      console.log("Generating with Gemini...");
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    console.log("API Route Hit. Cities:", cities);
+    
+    // 2. Check API Key
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      console.warn("Missing GOOGLE_API_KEY in environment variables.");
+      return NextResponse.json(
+        { error: "Server Error: API Key missing. Please configure GOOGLE_API_KEY in Vercel settings." },
+        { status: 500 }
+      );
+    }
 
-      const prompt = `
-        You are an expert travel planner. Create a detailed itinerary for a trip to: ${cities}.
-        Start Date: ${startDate}. End Date: ${endDate}.
-        Vibe: ${vibe || "General sightseeing"}.
+    // 3. Configure Gemini
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Use gemini-1.5-flash for speed and reliability (gemini-pro is deprecated/unavailable in some regions)
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        Return ONLY a JSON object with this exact structure (no markdown, no extra text):
-        {
-          "tripName": "Descriptive Trip Title",
-          "cities": [
-            {
-              "name": "City Name",
-              "startDate": "${startDate}", // Use provided dates if single city, or split reasonably
-              "endDate": "${endDate}",
-              "days": [
-                {
-                  "date": "YYYY-MM-DD",
-                  "activities": [
-                    { "time": "Morning", "title": "Activity Name", "type": "ACTIVITY", "cost": 0, "notes": "Short description" },
-                    { "time": "Afternoon", "title": "Activity Name", "type": "FOOD", "cost": 0, "notes": "Short description" },
-                    { "time": "Evening", "title": "Activity Name", "type": "OTHER", "cost": 0, "notes": "Short description" }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      `;
+    // 4. Construct Prompt
+    const prompt = `
+      You are an expert travel planner. Create a detailed itinerary for a trip to: ${cities}.
+      Start Date: ${startDate}. End Date: ${endDate}.
+      Vibe: ${vibe || "General sightseeing"}.
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      Return ONLY a JSON object with this exact structure (no markdown, no extra text):
+      {
+        "tripName": "Descriptive Trip Title",
+        "cities": [
+          {
+            "name": "City Name",
+            "startDate": "${startDate}",
+            "endDate": "${endDate}",
+            "days": [
+              {
+                "date": "YYYY-MM-DD",
+                "activities": [
+                  { "time": "Morning", "title": "Activity Name", "type": "ACTIVITY", "cost": 0, "notes": "Short description" },
+                  { "time": "Afternoon", "title": "Activity Name", "type": "FOOD", "cost": 0, "notes": "Short description" },
+                  { "time": "Evening", "title": "Activity Name", "type": "OTHER", "cost": 0, "notes": "Short description" }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    `;
+
+    // 5. Generate Content
+    console.log("Sending prompt to Gemini...");
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    console.log("Gemini Response received (length):", text.length);
+
+    // 6. Clean & Parse JSON
+    let jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const firstBrace = jsonStr.indexOf("{");
+    const lastBrace = jsonStr.lastIndexOf("}");
+    
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+
+    try {
       const data = JSON.parse(jsonStr);
       return NextResponse.json(data);
-    } 
-    
-    // Fallback if no key
-    console.log("Using Mock Data (No API Key found)");
-    return NextResponse.json({
-      tripName: "Generated Trip (Mock)",
-      cities: [
-        {
-          name: "Tokyo",
-          startDate: startDate || "2023-10-01",
-          endDate: endDate || "2023-10-02",
-          days: [
-            {
-              date: startDate || "2023-10-01",
-              activities: [
-                { time: "Morning", title: "Visit Senso-ji Temple", type: "ACTIVITY", cost: 0, notes: "Historic temple in Asakusa" },
-                { time: "Lunch", title: "Sushi at Tsukiji Outer Market", type: "FOOD", cost: 30, notes: "Try the fresh tuna!" },
-                { time: "Afternoon", title: "Explore TeamLab Planets", type: "ACTIVITY", cost: 25, notes: "Immersive digital art museum" },
-                { time: "Dinner", title: "Izakaya Hopping in Shinjuku", type: "FOOD", cost: 40, notes: "Yakitori and drinks in Omoide Yokocho" }
-              ]
-            }
-          ]
-        }
-      ]
-    });
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      console.error("Raw Text was:", text);
+      return NextResponse.json(
+        { error: "Failed to parse AI response. Try again." },
+        { status: 500 }
+      );
+    }
 
-  } catch (error) {
-    console.error("Generate Error:", error);
-    return NextResponse.json({ error: "Failed to generate plan" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Critical API Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
