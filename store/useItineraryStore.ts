@@ -23,10 +23,12 @@ export interface City {
 }
 
 interface ItineraryState {
+  language: 'en' | 'zh';
   tripName: string;
   cities: City[];
   items: ItineraryItem[];
   
+  setLanguage: (lang: 'en' | 'zh') => void;
   setTripName: (name: string) => void;
   addCity: (city: Omit<City, 'id' | 'color'>) => string;
   removeCity: (id: string) => void;
@@ -40,10 +42,12 @@ const COLORS = ['bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-yellow-100',
 export const useItineraryStore = create<ItineraryState>()(
   persist(
     (set, get) => ({
+      language: 'en',
       tripName: 'My Trip',
       cities: [],
       items: [],
       
+      setLanguage: (lang) => set({ language: lang }),
       setTripName: (name) => set({ tripName: name }),
 
       addCity: (cityData) => {

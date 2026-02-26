@@ -1,11 +1,10 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, MapPin, ArrowRight, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, Loader2, Plus, Trash2, Globe } from 'lucide-react';
 import { useItineraryStore } from '@/store/useItineraryStore';
 import LocationSearch from '@/components/LocationSearch';
 import { format, differenceInHours } from 'date-fns';
+import { translations, Language } from '@/lib/translations';
 
 interface CityInput {
   name: string;
@@ -16,31 +15,29 @@ interface CityInput {
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("Generating Plan...");
   
   // Selectors
   const addCity = useItineraryStore((state) => state.addCity);
   const addItem = useItineraryStore((state) => state.addItem);
   const setTripName = useItineraryStore((state) => state.setTripName);
-  const cities = useItineraryStore((state) => state.cities); // To check for existing
+  const language = useItineraryStore((state) => state.language);
+  const setLanguage = useItineraryStore((state) => state.setLanguage);
+  
+  const t = translations[language]; // Current translation
+  const [loadingText, setLoadingText] = useState(t.generating);
 
-  // Auto-Clear Old Itineraries (24h)
+  // Update loading text when language changes
+  useEffect(() => {
+    setLoadingText(t.generating);
+  }, [language]);
+
+  // Ensure hydration
   useEffect(() => {
     useItineraryStore.persist.rehydrate();
     
     // Check if we have a stored trip
     const storedState = localStorage.getItem('itinerary-storage');
-    if (storedState) {
-      try {
-        const { state } = JSON.parse(storedState);
-        // If cities exist, check the last update time (or just check start date of first city)
-        // Since we don't store "updatedAt", let's assume if the first city's end date is in the past > 24h?
-        // Or better: Just check if the user is visiting "/" (Start fresh).
-        // Let's explicitly clear if the user clicks "Generate" later.
-      } catch (e) {
-        console.error("Storage parse error", e);
-      }
-    }
+    // ... logic ...
   }, []);
 
   const [citiesList, setCitiesList] = useState<CityInput[]>([
@@ -79,21 +76,22 @@ export default function Home() {
     useItineraryStore.setState({ cities: [], items: [], tripName: '' });
 
     setLoading(true);
-    setLoadingText("Calculating Routes..."); 
+    setLoadingText(t.generating); 
 
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          cities: validCities, // Send full objects now
-          vibe 
+          cities: validCities, 
+          vibe,
+          language // Pass selected language to API
         }),
       });
 
       if (!res.ok) throw new Error('Failed to generate');
 
-      setLoadingText("Finalizing Itinerary...");
+      setLoadingText(t.finalizing);
       const data = await res.json();
       
       setTripName(data.tripName || `Trip to ${validCities[0].name}`);
@@ -115,7 +113,7 @@ export default function Home() {
                     dayIndex,
                     type: activity.type,
                     title: activity.title,
-                    time: activity.time, // Add time (Morning/Lunch/etc)
+                    time: activity.time, 
                     notes: activity.notes
                   });
                 });
@@ -136,36 +134,45 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-100 text-slate-900">
+    <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-100 text-slate-900 relative">
+      {/* Language Switcher */}
+      <div className="absolute top-6 right-6 z-10">
+        <button
+          onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
+          className="bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-2 text-sm font-semibold text-blue-900 border border-blue-100"
+        >
+          <Globe className="h-4 w-4" />
+          {language === 'en' ? 'English' : '简体中文'}
+        </button>
+      </div>
+
       <div className="max-w-2xl w-full space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="text-center space-y-4">
           <div className="inline-block p-4 rounded-full bg-blue-100 mb-2 animate-bounce">
             <span className="text-4xl">🌊</span>
           </div>
           <h1 className="text-5xl font-extrabold tracking-tight text-blue-950 drop-shadow-sm">
-            Smart Travel Agent
+            {t.title}
           </h1>
           <p className="text-lg text-blue-600/80 font-medium">
-            Your personal ocean of travel possibilities. 
-            <br className="hidden sm:block"/> 
-            Tell us where, when, and your vibe.
+            {t.subtitle}
           </p>
         </div>
 
         <form onSubmit={handleStart} className="space-y-6 bg-white/80 backdrop-blur-lg p-8 rounded-3xl shadow-xl border border-white/50 ring-1 ring-blue-100 transition-all hover:shadow-2xl hover:bg-white/90">
           <div className="space-y-6">
             <div className="space-y-4">
-              <label className="block text-sm font-bold text-blue-900 uppercase tracking-wider">Destinations & Dates</label>
+              <label className="block text-sm font-bold text-blue-900 uppercase tracking-wider">{t.destinations}</label>
               
               {citiesList.map((city, index) => (
                 <div key={index} className="p-4 bg-white rounded-xl border border-blue-100 shadow-sm space-y-3 relative group transition-all hover:border-blue-300">
                   <div className="flex gap-2 items-start">
                     <div className="flex-1">
-                      <label className="block text-xs font-semibold text-blue-400 mb-1 uppercase">City</label>
+                      <label className="block text-xs font-semibold text-blue-400 mb-1 uppercase">{t.cityLabel}</label>
                       <LocationSearch
                         value={city.name}
                         onChange={(val) => handleCityChange(index, 'name', val)}
-                        placeholder="e.g. Santorini, Greece"
+                        placeholder={t.searchPlaceholder}
                         required={true}
                       />
                     </div>
@@ -182,7 +189,7 @@ export default function Home() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-blue-400 mb-1 uppercase">From</label>
+                      <label className="block text-xs font-semibold text-blue-400 mb-1 uppercase">{t.fromLabel}</label>
                       <input
                         type="date"
                         value={city.startDate}
@@ -192,7 +199,7 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-blue-400 mb-1 uppercase">To</label>
+                      <label className="block text-xs font-semibold text-blue-400 mb-1 uppercase">{t.toLabel}</label>
                       <input
                         type="date"
                         value={city.endDate}
@@ -210,14 +217,14 @@ export default function Home() {
                 onClick={addCityInput}
                 className="w-full py-3 border-2 border-dashed border-blue-200 rounded-xl text-sm font-bold text-blue-500 hover:text-blue-700 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
               >
-                <Plus className="h-4 w-4" /> Add Another City
+                <Plus className="h-4 w-4" /> {t.addCityBtn}
               </button>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-blue-900 uppercase tracking-wider mb-2">Vibe / Interests</label>
+              <label className="block text-sm font-bold text-blue-900 uppercase tracking-wider mb-2">{t.vibeLabel}</label>
               <textarea
-                placeholder="e.g. Relaxing beach days, seafood dinners, sunset boat tours..."
+                placeholder={t.vibePlaceholder}
                 value={vibe}
                 onChange={(e) => setVibe(e.target.value)}
                 className="w-full p-4 border border-blue-100 bg-blue-50/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all h-28 resize-none text-slate-700 placeholder-blue-300"
@@ -236,7 +243,7 @@ export default function Home() {
               </>
             ) : (
               <>
-                Generate Ocean Escape <ArrowRight className="h-5 w-5" />
+                {t.generateBtn} <ArrowRight className="h-5 w-5" />
               </>
             )}
           </button>
@@ -245,3 +252,4 @@ export default function Home() {
     </main>
   );
 }
+
