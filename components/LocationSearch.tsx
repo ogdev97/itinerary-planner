@@ -93,36 +93,36 @@ export default function LocationSearch({ value, onChange, placeholder, required 
   return (
     <div ref={wrapperRef} className="relative w-full">
       <div className="relative">
-        <MapPin className="absolute left-3 top-3 h-5 w-5 text-neutral-400" />
+        <MapPin className="absolute left-3 top-3 h-5 w-5 text-blue-400" />
         <input
           type="text"
           placeholder={placeholder || "Search city..."}
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
           onFocus={() => query.length >= 3 && setIsOpen(true)}
-          className="w-full pl-10 pr-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all text-neutral-900 bg-white"
+          className="w-full pl-10 pr-4 py-2 border border-blue-100 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-700 placeholder-blue-300"
           required={required}
         />
         {loading && (
           <div className="absolute right-3 top-3">
-            <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
           </div>
         )}
       </div>
 
       {isOpen && results.length > 0 && (
-        <ul className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <ul className="absolute z-50 w-full mt-1 bg-white/95 backdrop-blur-md border border-blue-100 rounded-lg shadow-xl max-h-60 overflow-y-auto ring-1 ring-blue-50">
           {results.map((result) => (
             <li key={result.place_id}>
               <button
                 type="button"
                 onClick={() => handleSelect(result)}
-                className="w-full text-left px-4 py-2 hover:bg-neutral-100 transition-colors flex flex-col"
+                className="w-full text-left px-4 py-3 hover:bg-blue-50/50 transition-colors flex flex-col border-b border-blue-50 last:border-0"
               >
-                <span className="font-medium text-neutral-900 text-sm">
+                <span className="font-semibold text-blue-900 text-sm">
                   {result.name}
                 </span>
-                <span className="text-xs text-neutral-500 truncate">
+                <span className="text-xs text-blue-500/70 truncate">
                   {result.display_name}
                 </span>
               </button>
