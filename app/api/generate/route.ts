@@ -9,12 +9,25 @@ export async function POST(req: NextRequest) {
 
     console.log("API Route Hit. Generating for:", cities.length, "cities. Lang:", language);
     
+    // 2. Check API Key
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      console.warn("Missing GOOGLE_API_KEY in environment variables.");
+      return NextResponse.json(
+        { error: "Server Error: API Key missing. Please configure GOOGLE_API_KEY in Vercel settings." },
+        { status: 500 }
+      );
+    }
+
+    // 3. Configure Gemini
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Use gemini-2.0-flash (fast, stable, JSON-native)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
     // Determine language instruction
     const langInstruction = language === 'zh' 
       ? "Respond in Simplified Chinese (简体中文). Use Chinese characters for names/descriptions." 
       : "Respond in English.";
-
-    // ... key check ...
 
     // Format cities for prompt
     const citiesPrompt = cities.map((c: any) => 
@@ -31,9 +44,9 @@ export async function POST(req: NextRequest) {
       CRITICAL INSTRUCTIONS:
       1. ${langInstruction}
       2. For EACH day, provide specific activities for: Breakfast, Morning, Lunch, Afternoon, Dinner, Evening.
-      2. For "Morning", "Afternoon", and "Evening" slots, suggest at least 2-3 specific spots/activities if time permits.
-      3. For "Breakfast", "Lunch", and "Dinner", suggest SPECIFIC FAMOUS RESTAURANTS or street food areas known in that city.
-      4. Ensure the flow makes geographical sense (don't jump across the city).
+      3. For "Morning", "Afternoon", and "Evening" slots, suggest at least 2-3 specific spots/activities if time permits.
+      4. For "Breakfast", "Lunch", and "Dinner", suggest SPECIFIC FAMOUS RESTAURANTS or street food areas known in that city.
+      5. Ensure the flow makes geographical sense (don't jump across the city).
 
       Return ONLY a JSON object with this exact structure:
       {

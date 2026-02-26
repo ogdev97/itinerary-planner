@@ -1,5 +1,7 @@
 'use client';
 
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useItineraryStore, ItineraryItem } from '@/store/useItineraryStore';
 import { format, eachDayOfInterval, parseISO } from 'date-fns';
