@@ -23,8 +23,8 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ item }) => {
   return (
     <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-neutral-100 shadow-sm hover:shadow-md transition-shadow group">
       <div className="flex items-center gap-4">
-        <div className={twMerge('px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide', typeColor(item.type))}>
-          {item.type}
+        <div className={twMerge('px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide min-w-[80px] text-center', typeColor(item.type))}>
+          {item.time || item.type}
         </div>
         <div>
           <h4 className="font-medium text-neutral-900">{item.title}</h4>
